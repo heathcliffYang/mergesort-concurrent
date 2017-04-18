@@ -53,6 +53,13 @@ repeat-test: sort tools/util-average
 	@bash scripts/repeat-test.sh $(THREADS) $(TEST_DATA_FILE) $(ITERATIONS)
 	@./tools/util-average ./out/repeat-test-result.dat
 
+# String version test
+genVerify:
+	sort test_data/input.txt > test_data/result_from_command.txt
+check_string:
+	./sort $(THREADS) test_data/input.txt > test_data/result.txt
+	diff test_data/result.txt test_data/result_from_command.txt
+
 clean:
 	rm -f $(OBJS) sort
 	@rm -rf $(deps)
