@@ -78,7 +78,11 @@ void list_print(const llist_t * const list)
 {
     const node_t *cur = list->head;
     while (cur) {
+#if defined(numeric)
+        xprintln(cur->data);
+#elif defined(string)
         xprint((char*)cur->data); // adjust to character and disable new line
+#endif
         cur = cur->next;
     }
 }

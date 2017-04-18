@@ -17,7 +17,7 @@ $(GIT_HOOKS):
 
 deps := $(OBJS:%.o=.%.o.d)
 %.o: %.c
-	$(CC) $(CFLAGS) -o $@ -MMD -MF .$@.d -c $<
+	$(CC) $(CFLAGS) -Dnumeric -o $@ -MMD -MF .$@.d -c $<
 
 sort: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) -rdynamic
@@ -63,5 +63,8 @@ check_string:
 clean:
 	rm -f $(OBJS) sort
 	@rm -rf $(deps)
+
+clean_data:
+	rm -f test_data/input.txt test_data/result.txt test_data/result_from_command.txt
 
 -include $(deps)
