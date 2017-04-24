@@ -17,7 +17,7 @@ $(GIT_HOOKS):
 
 deps := $(OBJS:%.o=.%.o.d)
 %.o: %.c
-	$(CC) $(CFLAGS) -Dnumeric -o $@ -MMD -MF .$@.d -c $<
+	$(CC) $(CFLAGS) -o $@ -MMD -MF .$@.d -c $<
 
 sort: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) -rdynamic
@@ -53,18 +53,8 @@ repeat-test: sort tools/util-average
 	@bash scripts/repeat-test.sh $(THREADS) $(TEST_DATA_FILE) $(ITERATIONS)
 	@./tools/util-average ./out/repeat-test-result.dat
 
-# String version test
-genVerify:
-	sort test_data/input.txt > test_data/result_from_command.txt
-check_string:
-	./sort $(THREADS) test_data/input.txt > test_data/result.txt
-	diff test_data/result.txt test_data/result_from_command.txt
-
 clean:
 	rm -f $(OBJS) sort
 	@rm -rf $(deps)
-
-clean_data:
-	rm -f test_data/input.txt test_data/result.txt test_data/result_from_command.txt
 
 -include $(deps)

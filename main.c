@@ -104,13 +104,7 @@ static uint32_t build_list_from_file(llist_t *_list, const char *filename)
     char buffer[16];
 
     while (fgets(buffer, 16, fp) != NULL) {
-#if defined(numeric)
         list_add(_list, atol(buffer));
-#elif defined(string)
-        char *name = (char*)malloc(16);
-        strcpy(name, buffer);
-        list_add(_list, (val_t)name);
-#endif
     }
 
     fclose(fp);

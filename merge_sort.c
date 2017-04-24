@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <string.h>
+
 #include "merge_sort.h"
 
 /**
@@ -9,17 +9,13 @@ llist_t *sort_n_merge(llist_t *a, llist_t *b)
 {
     llist_t *_list = list_new();
     node_t *current = NULL;
+
     while (a->size && b->size) {
+
         /* Choose the linked list whose data of first node is small. */
-#if defined(numeric)
         llist_t *small = (llist_t *)
                          ((intptr_t) a * (a->head->data <= b->head->data) +
                           (intptr_t) b * (a->head->data > b->head->data));
-#elif defined(string)
-        llist_t *small;
-        int tmp = strcmp((char*)(a->head->data), (char*)(b->head->data));
-        small = (llist_t*) ((intptr_t) a * (tmp <= 0) + (intptr_t) b * (tmp > 0));
-#endif
         /* Extract first node of selected list and put to the new list. */
         if (current) {
             current->next = small->head;
@@ -33,7 +29,6 @@ llist_t *sort_n_merge(llist_t *a, llist_t *b)
         ++_list->size;
         current->next = NULL;
     }
-
     /* Append the remaining nodes */
     llist_t *remaining = (llist_t *) ((intptr_t) a * (a->size > 0) +
                                       (intptr_t) b * (b->size > 0));

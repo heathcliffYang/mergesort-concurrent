@@ -10,14 +10,39 @@
  * @param next Pointer to the next node
  * @return Pointer to the created new node
  */
-static node_t *node_new(val_t val, node_t *next)
+
+static inline
+int is_marked_ref(long i)
 {
-    /* allocate node */
-    node_t *node = malloc(sizeof(node_t));
-    node->data = val;
-    node->next = next;
-    return node;
+    return (int)(i & 0x1L);
 }
+
+static inline
+long unset_mark(long i)
+{
+    i &= ~0x1L;
+    return i;
+}
+
+static inline
+long set_mark(long i)
+{
+    i |= 0x1L;
+    return i;
+}
+
+static inline
+long get_unmarked_ref(long w)
+{
+    return w & ~0x1L;
+}
+
+static inline
+long get_marked_ref(long w)
+{
+    return w | 0x1L;
+}
+
 
 /**
  * @brief Initialize the linked list.
@@ -27,13 +52,28 @@ static node_t *node_new(val_t val, node_t *next)
  *
  * @return Pointer to the allocated _llist\_t_
  */
+
+
 llist_t *list_new()
 {
-    /* allocate list */
-    llist_t *list = malloc(sizeof(llist_t));
-    list->head = NULL;
-    list->size = 0;
-    return list;
+    // allocate list
+    llist_t *the_list = malloc(sizeof(llist_t));
+
+    // now need to create the sentinel node
+    the_list->head = new_node(NULL, NULL);
+    the_list->tail = new_node(NULL, NULL);
+    the_list->head->next = the_list->tail;
+    the_list->size = 0;
+
+    return the_list;
+}
+node_t *new_node(val_t val, node_t *next)
+{
+    // allocate node
+    node_t *node = malloc(sizeof(node_t));
+    node->data = val;
+    node->next = next;
+    return node;
 }
 
 /**
@@ -42,14 +82,56 @@ llist_t *list_new()
  * @param val Specify the value
  * @return The final size of the linked list
  */
-int list_add(llist_t * const list, const val_t val)
+node_t *list_search(llist_t *set, val_t val, node_t **left_node)
 {
-    node_t *e = node_new(val, NULL);
-    e->next = list->head;
-    list->head = e;
-    list->size++;
-    return list->size;
+    node_t *left_node_next, *right_node;
+    left_node_next = right_node = NULL;
+    while (1) {
+        node_t *t = set->head;
+        node_t *t_next = set->head->next;
+        while (is_marked_ref(t_next) || (t->data < val)) {
+            if (!is_marked_ref(t_next)) {
+                (*left_node) = t;
+                left_node_next = t_next;
+            }
+            t = get_unmarked_ref(t_next);
+            if (t == set->tail)
+                break;
+            t_next = t->next;
+        }
+        right_node = t;
+
+        if (left_node_next == right_node) {
+            if (!is_marked_ref(right_node->next))
+                return right_node;
+        } else {
+            if (CAS_PTR(&((*left_node)->next), left_node_next, right_node) ==
+                    left_node_next) {
+                if (!is_marked_ref(right_node->next))
+                    return right_node;
+            }
+        }
+    }
 }
+
+int list_add(llist_t *the_list, val_t val)
+{
+    node_t *right, *left;
+    right = left = NULL;
+    node_t *new_elem = new_node(val, NULL);
+    while (1) {
+        right = list_search(the_list, val, &left);
+        if (right != the_list->tail && right->data == val) {
+            return 0;
+        }
+        new_elem->next = right;
+        if (CAS_PTR(&(left->next), right, new_elem) == right) {
+            FAI_U32(&(the_list->size));
+            return 1;
+        }
+    }
+}
+
 
 /**
  * @brief Get the node specified by index
@@ -76,13 +158,10 @@ node_t *list_get(llist_t * const list, const uint32_t index)
  */
 void list_print(const llist_t * const list)
 {
-    const node_t *cur = list->head;
-    while (cur) {
-#if defined(numeric)
+    const node_t *cur = list->head->next;
+    int count = (int)list->size;
+    while (cur && count--) {
         xprintln(cur->data);
-#elif defined(string)
-        xprint((char*)cur->data); // adjust to character and disable new line
-#endif
         cur = cur->next;
     }
 }
@@ -100,3 +179,33 @@ void list_free_nodes(llist_t *list)
     }
     list->head = NULL;
 }
+
+/*
+ * list_remove deletes a node with the given value val (if the value is present)
+ * or does nothing (if the value is already present).
+ * The deletion is logical and consists of setting the node mark bit to 1.
+ */
+
+int list_remove(llist_t *the_list, val_t val)
+{
+    node_t *right, *left, *right_succ;
+    right = left = right_succ = NULL;
+    while (1) {
+        right = list_search(the_list, val, &left);
+        // check if we found our node
+        if (right == the_list->tail || right->data != val) {
+            return 0;
+        }
+        right_succ = right->next;
+        if (!is_marked_ref(right_succ)) {
+            if (CAS_PTR(&(right->next), right_succ,
+                        get_marked_ref(right_succ)) == right_succ) {
+                FAD_U32(&(the_list->size));
+                return 1;
+            }
+        }
+    }
+    // we just logically delete it, someone else will invoke search and delete
+    // it
+}
+
