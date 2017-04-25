@@ -10,7 +10,7 @@
  * @param next Pointer to the next node
  * @return Pointer to the created new node
  */
-
+#if defined(lockfree)
 static inline
 int is_marked_ref(long i)
 {
@@ -42,7 +42,7 @@ long get_marked_ref(long w)
 {
     return w | 0x1L;
 }
-
+#endif
 
 /**
  * @brief Initialize the linked list.
@@ -58,15 +58,19 @@ llist_t *list_new()
 {
     // allocate list
     llist_t *the_list = malloc(sizeof(llist_t));
-
+#if defined(lockfree)
     // now need to create the sentinel node
-    the_list->head = new_node(NULL, NULL);
-    the_list->tail = new_node(NULL, NULL);
+    the_list->head = new_node(INT_MIN, NULL);
+    the_list->tail = new_node(INT_MAX, NULL);
     the_list->head->next = the_list->tail;
+#elif defined(orig)
+    the_list->head = NULL;
+#endif
     the_list->size = 0;
 
     return the_list;
 }
+
 node_t *new_node(val_t val, node_t *next)
 {
     // allocate node
@@ -82,6 +86,7 @@ node_t *new_node(val_t val, node_t *next)
  * @param val Specify the value
  * @return The final size of the linked list
  */
+#if defined(lockfree)
 node_t *list_search(llist_t *set, val_t val, node_t **left_node)
 {
     node_t *left_node_next, *right_node;
@@ -113,9 +118,11 @@ node_t *list_search(llist_t *set, val_t val, node_t **left_node)
         }
     }
 }
+#endif
 
 int list_add(llist_t *the_list, val_t val)
 {
+#if defined(lockfree)
     node_t *right, *left;
     right = left = NULL;
     node_t *new_elem = new_node(val, NULL);
@@ -130,6 +137,13 @@ int list_add(llist_t *the_list, val_t val)
             return 1;
         }
     }
+#elif defined(orig)
+    node_t *e = new_node(val, NULL);
+    e->next = the_list->head;
+    the_list->head = e;
+    the_list->size++;
+    return the_list->size;
+#endif
 }
 
 
@@ -185,7 +199,7 @@ void list_free_nodes(llist_t *list)
  * or does nothing (if the value is already present).
  * The deletion is logical and consists of setting the node mark bit to 1.
  */
-
+#if defined(lockfree)
 int list_remove(llist_t *the_list, val_t val)
 {
     node_t *right, *left, *right_succ;
@@ -208,4 +222,4 @@ int list_remove(llist_t *the_list, val_t val)
     // we just logically delete it, someone else will invoke search and delete
     // it
 }
-
+#endif
