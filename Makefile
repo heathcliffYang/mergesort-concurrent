@@ -17,7 +17,7 @@ $(GIT_HOOKS):
 
 deps := $(OBJS:%.o=.%.o.d)
 %.o: %.c
-	$(CC) $(CFLAGS) -Dnumeric -Dlockfree -o $@ -MMD -MF .$@.d -c $<
+	$(CC) $(CFLAGS) -Dnumeric -Dorig -o $@ -MMD -MF .$@.d -c $<
 
 sort: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) -rdynamic
