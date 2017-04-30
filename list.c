@@ -128,9 +128,6 @@ int list_add(llist_t *the_list, val_t val)
     node_t *new_elem = new_node(val, NULL);
     while (1) {
         right = list_search(the_list, val, &left);
-        if (right != the_list->tail && right->data == val) {
-            return 0;
-        }
         new_elem->next = right;
         if (CAS_PTR(&(left->next), right, new_elem) == right) {
             FAI_U32(&(the_list->size));
@@ -172,7 +169,7 @@ node_t *list_get(llist_t * const list, const uint32_t index)
  */
 void list_print(const llist_t * const list)
 {
-    const node_t *cur = list->head->next;
+    const node_t *cur = list->head;
     int count = (int)list->size;
     while (cur && count--) {
         xprintln(cur->data);
